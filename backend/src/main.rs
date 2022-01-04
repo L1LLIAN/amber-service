@@ -2,13 +2,22 @@ mod services;
 
 use std::env;
 
-use actix_web::{get, App, HttpServer, Responder};
+use actix_web::{get, web::{self, Bytes}, App, HttpServer, Responder};
 use dotenv::dotenv;
 use services::PictureService;
 
 #[get("/")]
-async fn index() -> impl Responder {
-    "Meow!"
+async fn index(data: web::Data<PictureService>) -> impl Responder {
+    let result = &data.get_picture();
+    match result {
+        Some(vec) => {
+            Bytes::copy_from_slice(vec)
+        }
+
+        None => {
+            Bytes::new()
+        }
+    }
 }
 
 #[actix_web::main]
