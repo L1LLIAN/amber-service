@@ -2,21 +2,26 @@ mod services;
 
 use std::env;
 
-use actix_web::{get, web::{self, Bytes}, App, HttpServer, Responder};
+use actix_web::{
+    get,
+    http::header::ContentType,
+    web::{self, Bytes},
+    App, HttpResponse, HttpServer, Responder,
+};
 use dotenv::dotenv;
 use services::PictureService;
 
 #[get("/")]
 async fn index(data: web::Data<PictureService>) -> impl Responder {
     let result = &data.get_picture();
+
     match result {
         Some(vec) => {
-            Bytes::copy_from_slice(vec)
+            let bytes = Bytes::copy_from_slice(vec);
+            HttpResponse::Ok().set(ContentType::png()).body(bytes)
         }
 
-        None => {
-            Bytes::new()
-        }
+        None => HttpResponse::BadRequest().body("404 Not Found"),
     }
 }
 
