@@ -19,13 +19,12 @@ struct Context {
 
 #[get("/")]
 async fn get(data: web::Data<Context>) -> impl Responder {
-    let result = &data.picture_service.get_picture();
+    let result = data.picture_service.get_picture();
 
     match result {
-        Some(vec) => {
-            let bytes = Bytes::copy_from_slice(vec);
-            HttpResponse::Ok().set(ContentType::png()).body(bytes)
-        }
+        Some(vec) => HttpResponse::Ok()
+            .set(ContentType::png())
+            .body(Bytes::from(vec)),
 
         None => HttpResponse::BadRequest().body("404 Not Found"),
     }
@@ -34,15 +33,12 @@ async fn get(data: web::Data<Context>) -> impl Responder {
 #[post("/")]
 async fn post(request: HttpRequest, body: Bytes, data: web::Data<Context>) -> impl Responder {
     let headers = request.headers();
-    if !headers.contains_key("Authorization") {
-        return HttpResponse::Forbidden();
-    }
+    let authorization_token = match headers.get("Authorization") {
+        Some(value) => value.to_str().expect("Couldn't convert header to string"),
 
-    let authorization_token = headers
-        .get("Authorization")
-        .unwrap()
-        .to_str()
-        .expect("Couldn't convert header value to ascii.");
+        None => return HttpResponse::Forbidden(),
+    };
+
     if data.auth_token != authorization_token {
         return HttpResponse::Forbidden();
     }
@@ -66,16 +62,15 @@ async fn post(request: HttpRequest, body: Bytes, data: web::Data<Context>) -> im
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
-
-    let picture_path =
-        env::var("PICTURE_PATH").expect("Couldnt get PICTURE_PATH environment variable!");
+    let _ = dotenv();
 
     let bind_addr = env::var("BIND_ADDR").expect("Couldn't get BIND_ADDR environment variable!");
     HttpServer::new(move || {
+        let picture_path =
+            env::var("PICTURE_PATH").expect("Couldn't get PICTURE_PATH environment variable!");
         let auth_token =
             env::var("AUTH_TOKEN").expect("Couldn't get AUTH_TOKEN environment variable!");
-        let picture_service = PictureService::new(picture_path.clone());
+        let picture_service = PictureService::new(picture_path);
         let context = Context {
             auth_token,
             picture_service,

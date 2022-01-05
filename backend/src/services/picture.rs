@@ -28,9 +28,8 @@ impl PictureService {
 
     pub fn save_picture(&self, data: &[u8]) -> Result<(), Error> {
         let now = SystemTime::now();
-        let since_the_epoch = now
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards");
+        let since_the_epoch = now.duration_since(UNIX_EPOCH).expect("Time went backwards");
+
         let mut picture_path = since_the_epoch.as_millis().to_string() + ".jpg";
         picture_path.insert_str(0, &self.path);
 
